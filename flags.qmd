@@ -1,0 +1,53 @@
+---
+title: "World Flags"
+format: html
+---
+
+```{r}
+#| echo: false
+library(rnaturalearth)
+library(geojsonsf)
+
+# Send the list of PNG filenames in w2560/ to Observable JS
+ojs_define(flags = list.files("w2560", pattern = "\\.png$"))
+
+# Send country polygons and center coordinates as GeoJSON to Observable JS
+world <- ne_countries(scale = 50, returnclass = "sf")[, c("name", "iso_a2_eh", "label_x", "label_y")]
+ojs_define(world_geojson = sf_geojson(world))
+```
+
+```{ojs}
+//| echo: false
+// Create a dropdown menu to pick a flag file
+viewof selected = Inputs.select(flags, {label: "Select a flag:", value: "us.png"})
+
+// Display the chosen flag image from the w2560/ folder
+html`<img src="w2560/${selected}" style="max-width: 600px; border: 1px solid #ccc;">`
+
+// Load Leaflet CSS and library for the interactive map
+html`<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">`
+L = require("leaflet@1.9.4")
+world = JSON.parse(world_geojson)
+
+// Draw an interactive map centered on the selected country
+{
+  const div = DOM.element("div", {style: "height: 400px; max-width: 600px; margin-top: 1rem; background: #d4ebf2;"});
+  yield div;
+  const map = L.map(div, {attributionControl: false}).setView([20, 0], 2);
+
+  const code = selected.replace(".png", "").toUpperCase();
+  L.geoJSON(world, {
+    style: f => ({
+      color: f.properties.iso_a2_eh === code ? "crimson" : "#888",
+      weight: f.properties.iso_a2_eh === code ? 2 : 1,
+      fillColor: f.properties.iso_a2_eh === code ? "crimson" : "#f5f5f0",
+      fillOpacity: f.properties.iso_a2_eh === code ? 0.6 : 1
+    })
+  }).addTo(map);
+
+  const country = world.features.find(f => f.properties.iso_a2_eh === code);
+  if (country) {
+    map.setView([country.properties.label_y, country.properties.label_x], 4);
+  }
+}
+```

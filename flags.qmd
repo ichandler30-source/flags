@@ -1,6 +1,8 @@
 ---
 title: "World Flags"
 format: html
+resources:
+  - w2560/*.png
 ---
 
 ```{r}

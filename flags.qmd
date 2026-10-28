@@ -46,9 +46,6 @@ ojs_define(world_geojson = sf_geojson(world))
 
 ```{ojs}
 //| echo: false
-// Create a dropdown menu to pick a flag file
-viewof selected = Inputs.select(flags, {label: "Select a flag:", value: "us.png"})
-
 // Helper to get the full country name from a flag filename
 regionNames = new Intl.DisplayNames(["en"], {type: "region"})
 ukNames = ({"gb-eng": "England", "gb-nir": "Northern Ireland", "gb-sct": "Scotland", "gb-wls": "Wales"})
@@ -56,6 +53,22 @@ getName = (file) => {
   const code = file.replace(".png", "");
   return ukNames[code] || regionNames.of(code.toUpperCase());
 }
+
+// Search bar to filter countries by name or two-letter code
+viewof search = Inputs.text({label: "Search country:", placeholder: "Type a country name..."})
+
+filteredFlags = {
+  const q = search.trim().toLowerCase();
+  const matches = flags.filter(f => getName(f).toLowerCase().includes(q) || f.toLowerCase().includes(q));
+  return matches.length > 0 ? matches : flags;
+}
+
+// Create a dropdown menu to pick a flag file from the filtered list
+viewof selected = Inputs.select(filteredFlags, {
+  label: "Select a flag:",
+  format: f => `${getName(f)} (${f.replace(".png", "")})`,
+  value: filteredFlags.includes("us.png") ? "us.png" : filteredFlags[0]
+})
 
 // Display the full country name above the chosen flag image
 html`<h3>${getName(selected)}</h3>
@@ -70,6 +83,10 @@ html`<h4>Similar Flags</h4>
       <div>${getName(f)}</div>
     </div>`;
     card.onclick = () => {
+      if (viewof search.value !== "") {
+        viewof search.value = "";
+        viewof search.dispatchEvent(new Event("input", {bubbles: true}));
+      }
       viewof selected.value = f;
       viewof selected.dispatchEvent(new Event("input", {bubbles: true}));
     };
